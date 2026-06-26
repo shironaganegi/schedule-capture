@@ -1,0 +1,12 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.claude/
+
+# 自動生成アイコン（prebuild/predev で再生成される）
+public/icons/apple-touch-icon-180.png
+dev-dist
