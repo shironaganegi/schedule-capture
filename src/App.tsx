@@ -1,7 +1,9 @@
 import { PasteArea } from './components/PasteArea';
 import { EventForm } from './components/EventForm';
 import { DraftTabs } from './components/DraftTabs';
+import { HistoryPanel } from './components/HistoryPanel';
 import { useCapture, MAX_INPUT } from './hooks/useCapture';
+import { useHistory } from './hooks/useHistory';
 import { buildGcalUrl } from './lib/gcal';
 import { downloadIcs } from './lib/ics';
 
@@ -15,9 +17,11 @@ const LAUNCH_TEXT = readLaunchText();
 
 export default function App() {
   const cap = useCapture(LAUNCH_TEXT);
+  const history = useHistory();
 
   const handleAdd = () => {
     window.open(buildGcalUrl(cap.active.form), '_blank', 'noopener');
+    history.add(cap.active.form);
     const remaining = cap.drafts.filter((d, i) => i !== cap.activeIndex && !d.added);
     if (remaining.length === 0) {
       // 全件登録済み: 連続登録に備えて全リセット
@@ -25,6 +29,11 @@ export default function App() {
     } else {
       cap.markAdded();
     }
+  };
+
+  const handleIcs = () => {
+    downloadIcs(cap.active.form);
+    history.add(cap.active.form);
   };
 
   return (
@@ -49,12 +58,19 @@ export default function App() {
         timeGuessed={cap.active.timeGuessed}
         onField={cap.updateField}
         onAdd={handleAdd}
-        onDownloadIcs={() => downloadIcs(cap.active.form)}
+        onDownloadIcs={handleIcs}
+      />
+
+      <HistoryPanel
+        entries={history.entries}
+        onRestore={cap.restoreForm}
+        onRemove={history.remove}
+        onClear={history.clear}
       />
 
       <footer className="footer">
         貼ったテキストはどこにも送信されません（解析はすべてブラウザ内）。
-        カレンダー登録時のみ予定内容が Google に渡ります。
+        カレンダー登録時のみ予定内容が Google に渡ります。 履歴はこの端末にのみ保存されます。
       </footer>
     </div>
   );
