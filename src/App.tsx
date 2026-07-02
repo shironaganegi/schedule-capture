@@ -2,8 +2,10 @@ import { PasteArea } from './components/PasteArea';
 import { EventForm } from './components/EventForm';
 import { DraftTabs } from './components/DraftTabs';
 import { HistoryPanel } from './components/HistoryPanel';
+import { Toast } from './components/Toast';
 import { useCapture } from './hooks/useCapture';
 import { useHistory } from './hooks/useHistory';
+import { useToast } from './hooks/useToast';
 import { buildGcalUrl } from './lib/gcal';
 import { downloadIcs } from './lib/ics';
 import { readLaunchText } from './lib/launchParams';
@@ -18,16 +20,26 @@ if (LAUNCH_TEXT) {
 export default function App() {
   const cap = useCapture(LAUNCH_TEXT);
   const history = useHistory();
+  const { toast, show, dismiss } = useToast();
 
   const handleAdd = () => {
+    const before = cap.snapshot();
     window.open(buildGcalUrl(cap.active.form), '_blank', 'noopener');
     history.add(cap.active.form);
     const remaining = cap.drafts.filter((d, i) => i !== cap.activeIndex && !d.added);
+    const doneCount = cap.drafts.filter((d) => d.added).length + 1;
     if (remaining.length === 0) {
       // 全件登録済み: 連続登録に備えて全リセット
       cap.clearAll();
+      const message =
+        cap.drafts.length > 1 ? `${cap.drafts.length}件すべて登録しました` : '登録しました';
+      show(message, { actionLabel: '元に戻す', onAction: () => cap.restoreSnapshot(before) });
     } else {
       cap.markAdded();
+      show(`${doneCount}/${cap.drafts.length}件を追加しました`, {
+        actionLabel: '元に戻す',
+        onAction: () => cap.restoreSnapshot(before),
+      });
     }
   };
 
@@ -73,6 +85,8 @@ export default function App() {
         貼ったテキストはどこにも送信されません（解析はすべてブラウザ内）。
         カレンダー登録時のみ予定内容が Google に渡ります。 履歴はこの端末にのみ保存されます。
       </footer>
+
+      <Toast toast={toast} onDismiss={dismiss} />
     </div>
   );
 }
