@@ -103,6 +103,44 @@ body {
   gap: 14px;
 }
 
+.draft-tabs {
+  margin: -4px 0;
+}
+.draft-count {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.chip {
+  appearance: none;
+  flex-shrink: 0;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  min-height: 40px;
+}
+.chip.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.chip.added {
+  opacity: 0.6;
+}
+
 .field {
   display: flex;
   flex-direction: column;
