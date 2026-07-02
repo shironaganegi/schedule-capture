@@ -115,12 +115,17 @@ export function extractDateCandidates(text: string, baseDate: Date): DateCandida
   return cands;
 }
 
+/** 締切・申込系の語句が直前(14文字以内)にある候補を除外する。全滅する場合は元のまま返す。 */
+export function excludeDeadlines(cands: DateCandidate[], text: string): DateCandidate[] {
+  const kept = cands.filter((c) => !EXCLUDE.test(text.slice(Math.max(0, c.index - 14), c.index)));
+  return kept.length ? kept : cands;
+}
+
 /** 複数候補から予定日を選定する。締切系を除外し、イベント語に最も近い日付を採用。 */
 export function selectDate(cands: DateCandidate[], text: string): string {
   if (cands.length === 0) return '';
 
-  const kept = cands.filter((c) => !EXCLUDE.test(text.slice(Math.max(0, c.index - 14), c.index)));
-  const pool = kept.length ? kept : cands;
+  const pool = excludeDeadlines(cands, text);
 
   const events: number[] = [];
   const re = new RegExp(EVENT, 'g');
