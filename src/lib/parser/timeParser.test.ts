@@ -61,4 +61,14 @@ describe('extractTime', () => {
   it('時刻なしは空', () => {
     expect(extractTime('特になし')).toEqual({ startTime: '', endTime: '', guessed: false });
   });
+
+  it('「深夜」「夜勤」「朝礼」等の複合語はあいまい語彙として誤検出しない', () => {
+    expect(extractTime('深夜バイトの求人情報です。時間は未定。').startTime).toBe('');
+    expect(extractTime('夜勤シフトの募集').startTime).toBe('');
+    expect(extractTime('朝礼のお知らせ').startTime).toBe('');
+  });
+
+  it('「今夜」は複合語ではないのであいまい語彙として検出する', () => {
+    expect(extractTime('今夜集合')).toEqual({ startTime: '19:00', endTime: '', guessed: true });
+  });
 });

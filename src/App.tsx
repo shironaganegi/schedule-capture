@@ -25,7 +25,12 @@ export default function App() {
   const handleAdd = () => {
     const before = cap.snapshot();
     window.open(buildGcalUrl(cap.active.form), '_blank', 'noopener');
-    history.add(cap.active.form);
+    const addedId = history.add(cap.active.form);
+    // 「元に戻す」はフォーム状態に加え、この操作で作られた履歴エントリも取り消す
+    const undo = () => {
+      cap.restoreSnapshot(before);
+      if (addedId) history.remove(addedId);
+    };
     const remaining = cap.drafts.filter((d, i) => i !== cap.activeIndex && !d.added);
     const doneCount = cap.drafts.filter((d) => d.added).length + 1;
     if (remaining.length === 0) {
@@ -33,12 +38,12 @@ export default function App() {
       cap.clearAll();
       const message =
         cap.drafts.length > 1 ? `${cap.drafts.length}件すべて登録しました` : '登録しました';
-      show(message, { actionLabel: '元に戻す', onAction: () => cap.restoreSnapshot(before) });
+      show(message, { actionLabel: '元に戻す', onAction: undo });
     } else {
       cap.markAdded();
       show(`${doneCount}/${cap.drafts.length}件を追加しました`, {
         actionLabel: '元に戻す',
-        onAction: () => cap.restoreSnapshot(before),
+        onAction: undo,
       });
     }
   };

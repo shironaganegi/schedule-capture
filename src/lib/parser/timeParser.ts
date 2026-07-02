@@ -53,8 +53,9 @@ export function extractTime(text: string): TimeResult {
     const a = parseToken(single[0]);
     return { startTime: a.time, endTime: '', guessed: a.guessed };
   }
-  // 時刻トークンが無い場合のあいまい語彙（時間帯の目安なので推測扱い）
-  const vague = text.match(/朝|夕方|夜/);
+  // 時刻トークンが無い場合のあいまい語彙（時間帯の目安なので推測扱い）。
+  // 「深夜」「夜間」「夜勤」「朝礼」等の複合語は時刻表現ではないので除外する。
+  const vague = text.match(/(?<!深)朝(?!礼)|夕方|(?<!深)夜(?!間|勤)/);
   if (vague) {
     const t = vague[0] === '朝' ? '09:00' : vague[0] === '夕方' ? '17:00' : '19:00';
     return { startTime: t, endTime: '', guessed: true };

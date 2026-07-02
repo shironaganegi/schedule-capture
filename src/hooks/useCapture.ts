@@ -74,7 +74,7 @@ function cloneSnapshot(s: CaptureSnapshot): CaptureSnapshot {
  * - 候補数が減った場合、dirty または added の余剰 Draft は末尾に温存し、
  *   まっさらな Draft は破棄する。activeIndex は範囲内にクランプ。
  */
-function reconcile(prev: CaptureSnapshot, parsed: ParsedEventCandidate[]): CaptureSnapshot {
+export function reconcile(prev: CaptureSnapshot, parsed: ParsedEventCandidate[]): CaptureSnapshot {
   const next: Draft[] = parsed.map((p, i) => {
     const old = prev.drafts[i];
     if (!old) return draftFromParsed(p);
@@ -180,6 +180,7 @@ export function useCapture(initialText = '') {
   }, []);
 
   const clearAll = useCallback(() => {
+    lastAnalyzed.current = '';
     setState({ text: '', drafts: [newDraft()], activeIndex: 0 });
   }, []);
 
@@ -187,12 +188,14 @@ export function useCapture(initialText = '') {
   const restoreForm = useCallback((form: FormState) => {
     const d = newDraft(form);
     d.dirty = new Set(FORM_KEYS);
+    lastAnalyzed.current = '';
     setState({ text: '', drafts: [d], activeIndex: 0 });
   }, []);
 
   const snapshot = useCallback(() => cloneSnapshot(state), [state]);
 
   const restoreSnapshot = useCallback((s: CaptureSnapshot) => {
+    lastAnalyzed.current = s.text;
     setState(cloneSnapshot(s));
   }, []);
 
