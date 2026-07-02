@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { parseEvents } from '../lib/parser/parseEvents';
 import type { ParsedEventCandidate } from '../lib/parser/parseEvents';
 import type { FormState } from '../lib/parser/types';
@@ -115,8 +115,13 @@ function initState(initialText: string): CaptureSnapshot {
   };
 }
 
+const DEBOUNCE_MS = 400;
+
 export function useCapture(initialText = '') {
   const [state, setState] = useState<CaptureSnapshot>(() => initState(initialText));
+  const [composing, setComposing] = useState(false);
+  // 直近に解析済みのテキスト（同一テキストの再解析を防ぐ）
+  const lastAnalyzed = useRef(initialText.slice(0, MAX_INPUT));
 
   const setText = useCallback((v: string) => {
     const t = v.slice(0, MAX_INPUT);
@@ -127,10 +132,20 @@ export function useCapture(initialText = '') {
   const analyzeNow = useCallback((raw?: string) => {
     setState((prev) => {
       const t = (raw ?? prev.text).slice(0, MAX_INPUT);
+      lastAnalyzed.current = t;
       if (!t.trim()) return { ...prev, text: t };
       return reconcile({ ...prev, text: t }, parseEvents(t, new Date()));
     });
   }, []);
+
+  // 入力中の自動解析。IME 変換中は保留。テキストを消してもフォームはクリアしない
+  // （dirty 編集を守るため。明示クリアは clearAll のみ）。
+  useEffect(() => {
+    const t = state.text;
+    if (composing || !t.trim() || t === lastAnalyzed.current) return;
+    const timer = setTimeout(() => analyzeNow(), DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [state.text, composing, analyzeNow]);
 
   const selectDraft = useCallback((i: number) => {
     setState((prev) => ({
@@ -187,6 +202,7 @@ export function useCapture(initialText = '') {
     activeIndex: state.activeIndex,
     active: state.drafts[state.activeIndex],
     setText,
+    setComposing,
     analyzeNow,
     selectDraft,
     updateField,

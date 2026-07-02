@@ -28,7 +28,14 @@ export default defineConfig({
           { src: 'icons/maskable.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
           { src: 'icons/apple-touch-icon-180.png', sizes: '180x180', type: 'image/png' },
         ],
-      },
+        // Android 等の共有メニューから起動(インストール済み PWA のみ)。
+        // iOS は非対応なので既存の ?text= ショートカット経路を併用する。
+        share_target: {
+          action: base,
+          method: 'GET',
+          params: { title: 'title', text: 'text', url: 'url' },
+        },
+      } as import('vite-plugin-pwa').ManifestOptions & { share_target: unknown },
       workbox: {
         navigateFallback: base + 'index.html',
       },

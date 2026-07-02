@@ -2,18 +2,18 @@ import { PasteArea } from './components/PasteArea';
 import { EventForm } from './components/EventForm';
 import { DraftTabs } from './components/DraftTabs';
 import { HistoryPanel } from './components/HistoryPanel';
-import { useCapture, MAX_INPUT } from './hooks/useCapture';
+import { useCapture } from './hooks/useCapture';
 import { useHistory } from './hooks/useHistory';
 import { buildGcalUrl } from './lib/gcal';
 import { downloadIcs } from './lib/ics';
+import { readLaunchText } from './lib/launchParams';
 
-// ?text= 起動（iOS ショートカット共有）の初期テキスト。ページロード時に一度だけ読む。
-function readLaunchText(): string {
-  const t = new URLSearchParams(window.location.search).get('text');
-  return t ? t.slice(0, MAX_INPUT) : '';
+// ?text=（iOS ショートカット）/ ?title=&text=&url=（Web Share Target）起動の初期テキスト。
+// ページロード時に一度だけ読み、以後の再表示・履歴汚染を避けるためクエリを消す。
+const LAUNCH_TEXT = readLaunchText(window.location.search);
+if (LAUNCH_TEXT) {
+  window.history.replaceState(null, '', window.location.pathname);
 }
-
-const LAUNCH_TEXT = readLaunchText();
 
 export default function App() {
   const cap = useCapture(LAUNCH_TEXT);
@@ -49,6 +49,7 @@ export default function App() {
         onPaste={(raw) => cap.analyzeNow(raw)}
         onAnalyze={() => cap.analyzeNow()}
         onClear={cap.clearAll}
+        onCompositionChange={cap.setComposing}
       />
 
       <DraftTabs drafts={cap.drafts} activeIndex={cap.activeIndex} onSelect={cap.selectDraft} />
