@@ -1,4 +1,5 @@
-const ONLINE = /(Google\s*Meet|Microsoft\s*Teams|Teams|Zoom|ｚｏｏｍ|オンライン|ウェビナー|Webex|Skype)/i;
+const ONLINE =
+  /(Google\s*Meet|Microsoft\s*Teams|Teams|Zoom|ｚｏｏｍ|オンライン|ウェビナー|Webex|Skype)/i;
 
 // 建物・会場っぽい語。接尾辞の前に最大12文字（ひらがな=助詞は含めず名前部分だけ拾う）、
 // 後ろに「3F」「2階」等を許容。

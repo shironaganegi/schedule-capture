@@ -1,4 +1,11 @@
-import { addDays, addMinutesToTime, fromISODate, gcalDate, gcalDateTime, toISODate } from './datetime';
+import {
+  addDays,
+  addMinutesToTime,
+  fromISODate,
+  gcalDate,
+  gcalDateTime,
+  toISODate,
+} from './datetime';
 import type { FormState } from './parser/types';
 
 const DETAILS_MAX = 1500;

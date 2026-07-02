@@ -12,11 +12,7 @@ export function EventForm({ form, timeGuessed, onField, onAdd }: Props) {
     <section className="form">
       <label className="field">
         <span className="label">件名</span>
-        <input
-          type="text"
-          value={form.title}
-          onChange={(e) => onField('title', e.target.value)}
-        />
+        <input type="text" value={form.title} onChange={(e) => onField('title', e.target.value)} />
       </label>
 
       <label className="field">
@@ -58,7 +54,9 @@ export function EventForm({ form, timeGuessed, onField, onAdd }: Props) {
       )}
 
       {timeGuessed && !form.allDay && (
-        <p className="hint">⚠️ 午前/午後が明記されていないため時刻を推測しました。ご確認ください。</p>
+        <p className="hint">
+          ⚠️ 午前/午後が明記されていないため時刻を推測しました。ご確認ください。
+        </p>
       )}
 
       <label className="field">

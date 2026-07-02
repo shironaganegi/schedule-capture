@@ -17,7 +17,9 @@ export function parseEvent(text: string, baseDate: Date): ParsedEvent {
 
   const hasTime = !!time.startTime;
   const startTime = hasTime ? time.startTime : '';
-  const endTime = hasTime ? time.endTime || addMinutesToTime(time.startTime, DEFAULT_DURATION_MIN) : '';
+  const endTime = hasTime
+    ? time.endTime || addMinutesToTime(time.startTime, DEFAULT_DURATION_MIN)
+    : '';
 
   return {
     title: extractTitle(text),

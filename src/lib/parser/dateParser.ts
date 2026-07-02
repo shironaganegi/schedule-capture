@@ -8,7 +8,8 @@ export interface DateCandidate {
 const WD: Record<string, number> = { 月: 1, 火: 2, 水: 3, 木: 4, 金: 5, 土: 6, 日: 7 };
 
 const EXCLUDE = /(締切|締め切り|〆切|〆|申込|応募|期限|回答|返信)/;
-const EVENT = /(会社説明会|合同説明会|説明会|面接|面談|セミナー|選考|試験|ガイダンス|イベント|懇親会|インターン|ディスカッション)/;
+const EVENT =
+  /(会社説明会|合同説明会|説明会|面接|面談|セミナー|選考|試験|ガイダンス|イベント|懇親会|インターン|ディスカッション)/;
 
 function isValidMD(mo: number, d: number): boolean {
   return mo >= 1 && mo <= 12 && d >= 1 && d <= 31;
@@ -58,9 +59,11 @@ export function extractDateCandidates(text: string, baseDate: Date): DateCandida
   let m: RegExpExecArray | null;
 
   // 1) 年あり: 2025年7月3日 / 2025/7/3 / 2025-07-03
-  const ymd = /(\d{4})[年/\-](\d{1,2})[月/\-](\d{1,2})日?/g;
+  const ymd = /(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})日?/g;
   while ((m = ymd.exec(text))) {
-    const y = +m[1], mo = +m[2], d = +m[3];
+    const y = +m[1],
+      mo = +m[2],
+      d = +m[3];
     if (isValidMD(mo, d)) {
       cands.push({ iso: isoOf(y, mo, d), index: m.index });
       mask(m.index, m[0].length);
@@ -71,7 +74,8 @@ export function extractDateCandidates(text: string, baseDate: Date): DateCandida
   const md = /(\d{1,2})[月/](\d{1,2})日?/g;
   const src1 = masked.join('');
   while ((m = md.exec(src1))) {
-    const mo = +m[1], d = +m[2];
+    const mo = +m[1],
+      d = +m[2];
     if (isValidMD(mo, d)) {
       cands.push({ iso: isoOf(resolveYear(base, mo, d), mo, d), index: m.index });
       mask(m.index, m[0].length);

@@ -26,7 +26,7 @@ export function startOfDay(d: Date): Date {
 /** 'HH:MM' に分を加算（日跨ぎは丸め込み）。 */
 export function addMinutesToTime(t: string, mins: number): string {
   const [h, m] = t.split(':').map(Number);
-  const total = ((h * 60 + m + mins) % 1440 + 1440) % 1440;
+  const total = (((h * 60 + m + mins) % 1440) + 1440) % 1440;
   return `${pad2(Math.floor(total / 60))}:${pad2(total % 60)}`;
 }
 

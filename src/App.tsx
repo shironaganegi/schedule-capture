@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { PasteArea } from './components/PasteArea';
 import { EventForm } from './components/EventForm';
 import { parseEvent } from './lib/parser/parseEvent';
@@ -17,11 +17,33 @@ const EMPTY: FormState = {
 
 const MAX_INPUT = 2000;
 
+// ?text= 起動（iOS ショートカット共有）の初期テキスト
+function readLaunchText(): string {
+  const t = new URLSearchParams(window.location.search).get('text');
+  return t ? t.slice(0, MAX_INPUT) : '';
+}
+
+// 起動時テキストはページロード時に一度だけ解析する
+const LAUNCH_TEXT = readLaunchText();
+const LAUNCH_PARSED = LAUNCH_TEXT ? parseEvent(LAUNCH_TEXT, new Date()) : null;
+
+function toForm(p: NonNullable<typeof LAUNCH_PARSED>): FormState {
+  return {
+    title: p.title,
+    date: p.date,
+    startTime: p.startTime,
+    endTime: p.endTime,
+    allDay: p.allDay,
+    location: p.location,
+    notes: p.notes,
+  };
+}
+
 export default function App() {
-  const [text, setText] = useState('');
-  const [form, setForm] = useState<FormState>(EMPTY);
+  const [text, setText] = useState(LAUNCH_TEXT);
+  const [form, setForm] = useState<FormState>(LAUNCH_PARSED ? toForm(LAUNCH_PARSED) : EMPTY);
   const [dirty, setDirty] = useState<Set<keyof FormState>>(new Set());
-  const [timeGuessed, setTimeGuessed] = useState(false);
+  const [timeGuessed, setTimeGuessed] = useState(!!LAUNCH_PARSED?.guessed.time);
 
   // 解析結果をフォームへ反映。ユーザーが触った(dirty)フィールドは上書きしない。
   const applyParsed = useCallback(
@@ -45,18 +67,6 @@ export default function App() {
     },
     [dirty],
   );
-
-  // ?text= 起動: 貼り付けなしで自動解析
-  useEffect(() => {
-    const t = new URLSearchParams(window.location.search).get('text');
-    if (t) {
-      const trimmed = t.slice(0, MAX_INPUT);
-      setText(trimmed);
-      applyParsed(trimmed);
-    }
-    // 初回のみ
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handlePaste = (raw: string) => {
     const t = raw.slice(0, MAX_INPUT);

@@ -7,7 +7,8 @@ export interface TimeResult {
 }
 
 // 1つの時刻トークン。: か 時 を必須にして、ただの数字の誤検出を避ける。
-const TIME = '(?:午前|午後|ＡＭ|ＰＭ|AM|PM|am|pm)?\\s*\\d{1,2}\\s*(?::|時)\\s*(?:\\d{1,2}|半)?\\s*分?';
+const TIME =
+  '(?:午前|午後|ＡＭ|ＰＭ|AM|PM|am|pm)?\\s*\\d{1,2}\\s*(?::|時)\\s*(?:\\d{1,2}|半)?\\s*分?';
 
 interface ParsedToken {
   time: string;
