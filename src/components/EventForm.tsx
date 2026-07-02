@@ -5,9 +5,10 @@ interface Props {
   timeGuessed: boolean;
   onField: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
   onAdd: () => void;
+  onDownloadIcs: () => void;
 }
 
-export function EventForm({ form, timeGuessed, onField, onAdd }: Props) {
+export function EventForm({ form, timeGuessed, onField, onAdd, onDownloadIcs }: Props) {
   return (
     <section className="form">
       <label className="field">
@@ -79,6 +80,9 @@ export function EventForm({ form, timeGuessed, onField, onAdd }: Props) {
 
       <button type="button" className="btn add" onClick={onAdd}>
         Google カレンダーに追加
+      </button>
+      <button type="button" className="btn secondary" onClick={onDownloadIcs}>
+        .ics をダウンロード（Apple / Outlook など）
       </button>
     </section>
   );

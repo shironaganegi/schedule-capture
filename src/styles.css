@@ -178,6 +178,12 @@ body {
   background: var(--accent-press);
 }
 
+.btn.secondary {
+  background: transparent;
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+}
+
 .footer {
   font-size: 0.78rem;
   color: var(--muted);

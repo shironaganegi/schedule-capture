@@ -3,6 +3,7 @@ import { PasteArea } from './components/PasteArea';
 import { EventForm } from './components/EventForm';
 import { parseEvent } from './lib/parser/parseEvent';
 import { buildGcalUrl } from './lib/gcal';
+import { downloadIcs } from './lib/ics';
 import type { FormState } from './lib/parser/types';
 
 const EMPTY: FormState = {
@@ -108,7 +109,13 @@ export default function App() {
         onClear={handleClear}
       />
 
-      <EventForm form={form} timeGuessed={timeGuessed} onField={handleField} onAdd={handleAdd} />
+      <EventForm
+        form={form}
+        timeGuessed={timeGuessed}
+        onField={handleField}
+        onAdd={handleAdd}
+        onDownloadIcs={() => downloadIcs(form)}
+      />
 
       <footer className="footer">
         貼ったテキストはどこにも送信されません（解析はすべてブラウザ内）。
