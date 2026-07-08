@@ -1,86 +1,56 @@
-import { useCallback, useEffect, useState } from 'react';
 import { PasteArea } from './components/PasteArea';
 import { EventForm } from './components/EventForm';
-import { parseEvent } from './lib/parser/parseEvent';
+import { DraftTabs } from './components/DraftTabs';
+import { HistoryPanel } from './components/HistoryPanel';
+import { Toast } from './components/Toast';
+import { useCapture } from './hooks/useCapture';
+import { useHistory } from './hooks/useHistory';
+import { useToast } from './hooks/useToast';
 import { buildGcalUrl } from './lib/gcal';
-import type { FormState } from './lib/parser/types';
+import { downloadIcs } from './lib/ics';
+import { readLaunchText } from './lib/launchParams';
 
-const EMPTY: FormState = {
-  title: '',
-  date: '',
-  startTime: '',
-  endTime: '',
-  allDay: false,
-  location: '',
-  notes: '',
-};
-
-const MAX_INPUT = 2000;
+// ?text=（iOS ショートカット）/ ?title=&text=&url=（Web Share Target）起動の初期テキスト。
+// ページロード時に一度だけ読み、以後の再表示・履歴汚染を避けるためクエリを消す。
+const LAUNCH_TEXT = readLaunchText(window.location.search);
+if (LAUNCH_TEXT) {
+  window.history.replaceState(null, '', window.location.pathname);
+}
 
 export default function App() {
-  const [text, setText] = useState('');
-  const [form, setForm] = useState<FormState>(EMPTY);
-  const [dirty, setDirty] = useState<Set<keyof FormState>>(new Set());
-  const [timeGuessed, setTimeGuessed] = useState(false);
-
-  // 解析結果をフォームへ反映。ユーザーが触った(dirty)フィールドは上書きしない。
-  const applyParsed = useCallback(
-    (raw: string) => {
-      const p = parseEvent(raw, new Date());
-      setForm((prev) => {
-        const next = { ...prev };
-        const set = <K extends keyof FormState>(k: K, v: FormState[K]) => {
-          if (!dirty.has(k)) next[k] = v;
-        };
-        set('title', p.title);
-        set('date', p.date);
-        set('startTime', p.startTime);
-        set('endTime', p.endTime);
-        set('allDay', p.allDay);
-        set('location', p.location);
-        set('notes', p.notes);
-        return next;
-      });
-      if (!dirty.has('startTime')) setTimeGuessed(!!p.guessed.time);
-    },
-    [dirty],
-  );
-
-  // ?text= 起動: 貼り付けなしで自動解析
-  useEffect(() => {
-    const t = new URLSearchParams(window.location.search).get('text');
-    if (t) {
-      const trimmed = t.slice(0, MAX_INPUT);
-      setText(trimmed);
-      applyParsed(trimmed);
-    }
-    // 初回のみ
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handlePaste = (raw: string) => {
-    const t = raw.slice(0, MAX_INPUT);
-    setText(t);
-    applyParsed(t);
-  };
-
-  const handleField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-    setDirty((prev) => new Set(prev).add(key));
-    if (key === 'startTime') setTimeGuessed(false);
-  };
-
-  const handleClear = () => {
-    setText('');
-    setForm(EMPTY);
-    setDirty(new Set());
-    setTimeGuessed(false);
-  };
+  const cap = useCapture(LAUNCH_TEXT);
+  const history = useHistory();
+  const { toast, show, dismiss } = useToast();
 
   const handleAdd = () => {
-    window.open(buildGcalUrl(form), '_blank', 'noopener');
-    // 連続登録に備えて全リセット
-    handleClear();
+    const before = cap.snapshot();
+    window.open(buildGcalUrl(cap.active.form), '_blank', 'noopener');
+    const addedId = history.add(cap.active.form);
+    // 「元に戻す」はフォーム状態に加え、この操作で作られた履歴エントリも取り消す
+    const undo = () => {
+      cap.restoreSnapshot(before);
+      if (addedId) history.remove(addedId);
+    };
+    const remaining = cap.drafts.filter((d, i) => i !== cap.activeIndex && !d.added);
+    const doneCount = cap.drafts.filter((d) => d.added).length + 1;
+    if (remaining.length === 0) {
+      // 全件登録済み: 連続登録に備えて全リセット
+      cap.clearAll();
+      const message =
+        cap.drafts.length > 1 ? `${cap.drafts.length}件すべて登録しました` : '登録しました';
+      show(message, { actionLabel: '元に戻す', onAction: undo });
+    } else {
+      cap.markAdded();
+      show(`${doneCount}/${cap.drafts.length}件を追加しました`, {
+        actionLabel: '元に戻す',
+        onAction: undo,
+      });
+    }
+  };
+
+  const handleIcs = () => {
+    downloadIcs(cap.active.form);
+    history.add(cap.active.form);
   };
 
   return (
@@ -91,19 +61,37 @@ export default function App() {
       </header>
 
       <PasteArea
-        value={text}
-        onChange={setText}
-        onPaste={handlePaste}
-        onAnalyze={() => applyParsed(text)}
-        onClear={handleClear}
+        value={cap.text}
+        onChange={cap.setText}
+        onPaste={(raw) => cap.analyzeNow(raw)}
+        onAnalyze={() => cap.analyzeNow()}
+        onClear={cap.clearAll}
+        onCompositionChange={cap.setComposing}
       />
 
-      <EventForm form={form} timeGuessed={timeGuessed} onField={handleField} onAdd={handleAdd} />
+      <DraftTabs drafts={cap.drafts} activeIndex={cap.activeIndex} onSelect={cap.selectDraft} />
+
+      <EventForm
+        form={cap.active.form}
+        timeGuessed={cap.active.timeGuessed}
+        onField={cap.updateField}
+        onAdd={handleAdd}
+        onDownloadIcs={handleIcs}
+      />
+
+      <HistoryPanel
+        entries={history.entries}
+        onRestore={cap.restoreForm}
+        onRemove={history.remove}
+        onClear={history.clear}
+      />
 
       <footer className="footer">
         貼ったテキストはどこにも送信されません（解析はすべてブラウザ内）。
-        カレンダー登録時のみ予定内容が Google に渡ります。
+        カレンダー登録時のみ予定内容が Google に渡ります。 履歴はこの端末にのみ保存されます。
       </footer>
+
+      <Toast toast={toast} onDismiss={dismiss} />
     </div>
   );
 }

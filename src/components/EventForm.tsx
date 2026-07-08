@@ -5,18 +5,15 @@ interface Props {
   timeGuessed: boolean;
   onField: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
   onAdd: () => void;
+  onDownloadIcs: () => void;
 }
 
-export function EventForm({ form, timeGuessed, onField, onAdd }: Props) {
+export function EventForm({ form, timeGuessed, onField, onAdd, onDownloadIcs }: Props) {
   return (
     <section className="form">
       <label className="field">
         <span className="label">件名</span>
-        <input
-          type="text"
-          value={form.title}
-          onChange={(e) => onField('title', e.target.value)}
-        />
+        <input type="text" value={form.title} onChange={(e) => onField('title', e.target.value)} />
       </label>
 
       <label className="field">
@@ -58,7 +55,9 @@ export function EventForm({ form, timeGuessed, onField, onAdd }: Props) {
       )}
 
       {timeGuessed && !form.allDay && (
-        <p className="hint">⚠️ 午前/午後が明記されていないため時刻を推測しました。ご確認ください。</p>
+        <p className="hint">
+          ⚠️ 午前/午後が明記されていないため時刻を推測しました。ご確認ください。
+        </p>
       )}
 
       <label className="field">
@@ -81,6 +80,9 @@ export function EventForm({ form, timeGuessed, onField, onAdd }: Props) {
 
       <button type="button" className="btn add" onClick={onAdd}>
         Google カレンダーに追加
+      </button>
+      <button type="button" className="btn secondary" onClick={onDownloadIcs}>
+        .ics をダウンロード（Apple / Outlook など）
       </button>
     </section>
   );

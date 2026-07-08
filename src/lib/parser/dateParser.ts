@@ -8,10 +8,16 @@ export interface DateCandidate {
 const WD: Record<string, number> = { 月: 1, 火: 2, 水: 3, 木: 4, 金: 5, 土: 6, 日: 7 };
 
 const EXCLUDE = /(締切|締め切り|〆切|〆|申込|応募|期限|回答|返信)/;
-const EVENT = /(会社説明会|合同説明会|説明会|面接|面談|セミナー|選考|試験|ガイダンス|イベント|懇親会|インターン|ディスカッション)/;
+const EVENT =
+  /(会社説明会|合同説明会|説明会|面接|面談|セミナー|選考|試験|ガイダンス|イベント|懇親会|インターン|ディスカッション)/;
 
-function isValidMD(mo: number, d: number): boolean {
-  return mo >= 1 && mo <= 12 && d >= 1 && d <= 31;
+function daysInMonth(y: number, mo: number): number {
+  return new Date(y, mo, 0).getDate();
+}
+
+/** 月別日数まで検証する（2/30 は拒否、閏年の 2/29 は受理）。 */
+function isValidDate(y: number, mo: number, d: number): boolean {
+  return mo >= 1 && mo <= 12 && d >= 1 && d <= daysInMonth(y, mo);
 }
 
 function isoOf(y: number, mo: number, d: number): string {
@@ -58,10 +64,12 @@ export function extractDateCandidates(text: string, baseDate: Date): DateCandida
   let m: RegExpExecArray | null;
 
   // 1) 年あり: 2025年7月3日 / 2025/7/3 / 2025-07-03
-  const ymd = /(\d{4})[年/\-](\d{1,2})[月/\-](\d{1,2})日?/g;
+  const ymd = /(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})日?/g;
   while ((m = ymd.exec(text))) {
-    const y = +m[1], mo = +m[2], d = +m[3];
-    if (isValidMD(mo, d)) {
+    const y = +m[1],
+      mo = +m[2],
+      d = +m[3];
+    if (isValidDate(y, mo, d)) {
       cands.push({ iso: isoOf(y, mo, d), index: m.index });
       mask(m.index, m[0].length);
     }
@@ -71,9 +79,12 @@ export function extractDateCandidates(text: string, baseDate: Date): DateCandida
   const md = /(\d{1,2})[月/](\d{1,2})日?/g;
   const src1 = masked.join('');
   while ((m = md.exec(src1))) {
-    const mo = +m[1], d = +m[2];
-    if (isValidMD(mo, d)) {
-      cands.push({ iso: isoOf(resolveYear(base, mo, d), mo, d), index: m.index });
+    const mo = +m[1],
+      d = +m[2];
+    // 年を解決してから検証する（2/29 の妥当性は年に依存する）
+    const y = resolveYear(base, mo, d);
+    if (isValidDate(y, mo, d)) {
+      cands.push({ iso: isoOf(y, mo, d), index: m.index });
       mask(m.index, m[0].length);
     }
   }
@@ -86,23 +97,35 @@ export function extractDateCandidates(text: string, baseDate: Date): DateCandida
     mask(m.index, m[0].length);
   }
 
-  // 4) 曜日（カッコ付き確認の（木）は「曜」が無いので拾わない）
-  const wd = /(今週|来週)?([月火水木金土日])曜日?/g;
+  // 4) 曜日。カッコ付き「(木)」も拾うが、「7/3(木)」のように直前が日付
+  //    （マスク済み）の場合は確認表記なので重複候補を作らない。
+  const wd = /(今週|来週)?(?:([月火水木金土日])曜日?|[（(]([月火水木金土日])[)）])/g;
   const src3 = masked.join('');
   while ((m = wd.exec(src3))) {
-    cands.push({ iso: toISODate(weekdayDate(base, WD[m[2]], m[1])), index: m.index });
+    const ch = m[2] ?? m[3];
+    if (m[3]) {
+      let i = m.index - 1;
+      while (i >= 0 && /\s/.test(text[i])) i--;
+      if (i >= 0 && text[i] !== src3[i]) continue; // 直前が日付としてマスク済み
+    }
+    cands.push({ iso: toISODate(weekdayDate(base, WD[ch], m[1])), index: m.index });
   }
 
   cands.sort((a, b) => a.index - b.index);
   return cands;
 }
 
+/** 締切・申込系の語句が直前(14文字以内)にある候補を除外する。全滅する場合は元のまま返す。 */
+export function excludeDeadlines(cands: DateCandidate[], text: string): DateCandidate[] {
+  const kept = cands.filter((c) => !EXCLUDE.test(text.slice(Math.max(0, c.index - 14), c.index)));
+  return kept.length ? kept : cands;
+}
+
 /** 複数候補から予定日を選定する。締切系を除外し、イベント語に最も近い日付を採用。 */
 export function selectDate(cands: DateCandidate[], text: string): string {
   if (cands.length === 0) return '';
 
-  const kept = cands.filter((c) => !EXCLUDE.test(text.slice(Math.max(0, c.index - 14), c.index)));
-  const pool = kept.length ? kept : cands;
+  const pool = excludeDeadlines(cands, text);
 
   const events: number[] = [];
   const re = new RegExp(EVENT, 'g');

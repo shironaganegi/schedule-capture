@@ -6,9 +6,17 @@ interface Props {
   onPaste: (v: string) => void; // 貼り付け確定後の全文
   onAnalyze: () => void;
   onClear: () => void;
+  onCompositionChange: (composing: boolean) => void;
 }
 
-export function PasteArea({ value, onChange, onPaste, onAnalyze, onClear }: Props) {
+export function PasteArea({
+  value,
+  onChange,
+  onPaste,
+  onAnalyze,
+  onClear,
+  onCompositionChange,
+}: Props) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
   return (
@@ -19,6 +27,8 @@ export function PasteArea({ value, onChange, onPaste, onAnalyze, onClear }: Prop
         value={value}
         placeholder="ここに予定のテキストを貼り付け（メール・LINE・就活マイページなど）"
         onChange={(e) => onChange(e.target.value)}
+        onCompositionStart={() => onCompositionChange(true)}
+        onCompositionEnd={() => onCompositionChange(false)}
         onPaste={() => {
           // 既定の貼り付け反映後の全文を読んで解析する
           setTimeout(() => onPaste(ref.current?.value ?? ''), 0);
